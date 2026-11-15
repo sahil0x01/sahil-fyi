@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sahil</title>
+  <meta name="description" content="Sahil builds open source software in TypeScript and Rust. Currently building t1-relay, a cloud coding agent. Planning a suite of privacy-first products.">
+  <meta property="og:title" content="Sahil">
+  <meta property="og:description" content="Building in public. Thinking in systems.">
+  <meta property="og:url" content="https://sahil.fyi">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#F4F3EF">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="canonical" href="https://sahil.fyi">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap">
+  <script src="theme.js"></script>
+  <style>
+    /* Tokens. Light is the default. Dark applies under the OS setting unless
+       the reader chose light, or under an explicit data-theme="dark". */
+    :root {
+      --paper: #F4F3EF;
+      --ink: #111110;
+      --muted: #77756E;
+      --hairline: #DCDAD2;
+      --accent: #E0492B;
+
+      --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+      --sans: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --paper: #111110;
+        --ink: #EDEBE4;
+        --muted: #8D8B83;
+        --hairline: #2A2A27;
+        color-scheme: dark;
+      }
+    }
+    :root[data-theme="dark"] {
+      --paper: #111110;
+      --ink: #EDEBE4;
+      --muted: #8D8B83;
+      --hairline: #2A2A27;
+      color-scheme: dark;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      transition: background-color .4s ease, color .4s ease;
+    }
+
+    ::selection { background: var(--ink); color: var(--paper); }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+      background-image: linear-gradient(currentColor, currentColor);
+      background-size: 0 1px;
+      background-repeat: no-repeat;
+      background-position: 0 100%;
+      transition: background-size .25s ease;
+    }
+    a:hover, a:focus-visible { background-size: 100% 1px; }
+
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+
+    .wrap {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 0 16px 48px;
+    }
+
+    /* Top bar */
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 22px 0;
+      font-family: var(--mono);
+      font-size: 13px;
+      opacity: 0;
+      animation: fade .8s ease .05s forwards;
+    }
+    .top .name { color: var(--muted); }
+
+    .theme {
+      display: inline-flex;
+      gap: 14px;
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: .02em;
+    }
+    .theme button {
+      appearance: none;
+      background: none;
+      border: 0;
+      padding: 4px 0;
+      margin: 0;
+      font: inherit;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 1px solid transparent;
+      transition: color .2s ease, border-color .2s ease;
+    }
+    .theme button:hover { color: var(--ink); }
+    .theme button[aria-pressed="true"] {
+      color: var(--ink);
+      border-bottom-color: var(--ink);
+    }
+    .theme button:focus-visible { outline-offset: 4px; }
+
+    /* Hero */
+    .hero { padding-top: clamp(40px, 10vh, 96px); }
+
+    .status {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--muted);
+      margin: 0 0 28px;
+      opacity: 0;
+      animation: rise .8s ease .1s forwards;
+    }
+    .status b { font-weight: 400; color: var(--ink); }
+
+    h1 {
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(72px, 19vw, 150px);
+      line-height: .9;
+      letter-spacing: -.04em;
+      margin: 0 0 32px -.04em;
+      opacity: 0;
+      animation: rise 1s cubic-bezier(.2,.7,.2,1) .18s forwards;
+    }
+    /* Background field: fixed behind the page, faded toward the edges. */
+    #field {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: .9;
+      -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 42%, #000 35%, transparent 100%);
+      mask-image: radial-gradient(ellipse 80% 75% at 50% 42%, #000 35%, transparent 100%);
+    }
+    .wrap { position: relative; z-index: 1; }
+    @media (max-width: 520px) { #field { opacity: .6; } }
+
+    .lede {
+      font-size: clamp(19px, 2.6vw, 22px);
+      line-height: 1.45;
+      letter-spacing: -.01em;
+      max-width: 32ch;
+      margin: 0 0 30px;
+      opacity: 0;
+      animation: rise .9s cubic-bezier(.2,.7,.2,1) .32s forwards;
+    }
+    .lede strong { font-weight: 500; }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 24px;
+      font-family: var(--mono);
+      font-size: 13px;
+      opacity: 0;
+      animation: fade .9s ease .44s forwards;
+    }
+
+    /* Sections */
+    section {
+      margin-top: 88px;
+      opacity: 0;
+      animation: fade .9s ease forwards;
+    }
+    section.work { animation-delay: .55s; }
+    section.now { animation-delay: .7s; }
+    section.elsewhere { animation-delay: .8s; }
+
+    .label {
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 0 0 26px;
+    }
+
+    .prose {
+      font-size: 17px;
+      line-height: 1.65;
+      margin: 0 0 18px;
+      max-width: 52ch;
+    }
+
+    /* Work log: a git-graph rail. The newest commit is the filled node. */
+    .log {
+      list-style: none;
+      margin: 0;
+      padding: 0 0 0 26px;
+      position: relative;
+    }
+    .log::before {
+      content: "";
+      position: absolute;
+      left: 3px;
+      top: 8px;
+      bottom: 8px;
+      width: 1px;
+      background: var(--hairline);
+      transform-origin: top;
+      animation: draw 1.4s cubic-bezier(.6,0,.2,1) .7s both;
+    }
+    .log li {
+      position: relative;
+      padding: 0 0 30px;
+      opacity: 0;
+      animation: fade .7s ease forwards;
+    }
+    .log li:nth-child(1) { animation-delay: .85s; }
+    .log li:nth-child(2) { animation-delay: 1.0s; }
+    .log li:nth-child(3) { animation-delay: 1.15s; }
+    .log li:last-child { padding-bottom: 0; }
+    .log li::before {
+      content: "";
+      position: absolute;
+      left: -26px;
+      top: 8px;
+      width: 7px;
+      height: 7px;
+      background: var(--paper);
+      border: 1px solid var(--muted);
+      transition: background-color .3s ease;
+    }
+    .log li.current::before {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .log time {
+      display: block;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+    .log .title {
+      font-size: 19px;
+      font-weight: 500;
+      letter-spacing: -.015em;
+      line-height: 1.3;
+    }
+    .log .desc {
+      font-size: 15px;
+      color: var(--muted);
+      margin: 4px 0 0;
+      max-width: 50ch;
+    }
+    .log .tag {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      margin-left: 10px;
+      vertical-align: 2px;
+    }
+
+    .proj-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 20px;
+      margin: 10px 0 0;
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+    .proj-links a { color: var(--ink); }
+    .proj-links .muted { color: var(--muted); }
+
+    .planned {
+      margin: 0;
+      padding: 18px 0 0;
+      border-top: 1px solid var(--hairline);
+      font-size: 15px;
+      color: var(--muted);
+      max-width: 52ch;
+    }
+    .planned b { color: var(--ink); font-weight: 500; }
+
+    .links {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .links li {
+      border-top: 1px solid var(--hairline);
+    }
+    .links li:nth-child(even) {
+      padding-left: 18px;
+      border-left: 1px solid var(--hairline);
+    }
+    .links a {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 14px 0;
+      font-size: 17px;
+    }
+    .links a span:last-child {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--muted);
+      transition: transform .25s ease, color .2s ease;
+    }
+    .links a:hover span:last-child { transform: translate(2px, -2px); color: var(--ink); }
+
+    footer {
+      margin-top: 112px;
+      padding-top: 18px;
+      border-top: 1px solid var(--hairline);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Motion */
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: none; }
+    }
+    @keyframes fade {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes draw {
+      from { transform: scaleY(0); }
+      to   { transform: scaleY(1); }
+    }
+
+    @media (max-width: 520px) {
+      .links { grid-template-columns: 1fr; }
+      .links li:nth-child(even) { padding-left: 0; border-left: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+      .top, .status, h1, .lede, .meta-row, section, .log li { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="field" aria-hidden="true"></canvas>
+  <div class="wrap">
+    <header class="top">
+      <span class="name">sahil.fyi</span>
+      <div class="theme" role="group" aria-label="Theme">
+        <button type="button" data-theme-set="system" aria-pressed="true">System</button>
+        <button type="button" data-theme-set="light" aria-pressed="false">Light</button>
+        <button type="button" data-theme-set="dark" aria-pressed="false">Dark</button>
+      </div>
+    </header>
+
+    <main>
+      <div class="hero">
+        <p class="status">Building <b>t1-relay</b></p>
+
+        <h1>Sahil</h1>
+
+        <p class="lede">I build open source software in <strong>TypeScript</strong> and <strong>Rust</strong>. Building in public, thinking in systems.</p>
+
+        <div class="meta-row">
+          <a href="https://github.com/sahil0x01">GitHub</a>
+          <a href="https://x.com/sahil0x01">X</a>
+          <a href="https://notes.sahil.fyi">Notes</a>
+          <a href="mailto:hi@sahil.fyi">hi@sahil.fyi</a>
+        </div>
+      </div>
+
+      <section class="work" aria-labelledby="work-label">
+        <p class="label" id="work-label">Projects, newest first</p>
+        <ol class="log">
+          <li class="current">
+            <time datetime="2026-11-13">Nov 2026</time>
+            <div class="title">t1-relay<span class="tag">in progress</span></div>
+            <p class="desc">A cloud coding agent.</p>
+            <p class="proj-links"><a href="https://github.com/sahil0x01/t1-relay">GitHub ↗</a><span class="muted">Live: not yet</span></p>
+          </li>
+          <li>
+            <time datetime="2026-10-26">Oct 2026</time>
+            <div class="title">lofi-skylines</div>
+            <p class="desc">Pixel-art nights in fourteen cities, with generated tracks, weather sound beds and storm thunder.</p>
+            <p class="proj-links"><a href="https://github.com/sahil0x01/lofi-skylines">GitHub ↗</a><a href="https://lofi-skylines.mrsheerluck003.workers.dev">Live ↗</a></p>
+          </li>
+          <li>
+            <time datetime="2026-08-18">Aug 2026</time>
+            <div class="title">Odin by Example</div>
+            <p class="desc">Annotated example programs for learning the Odin programming language.</p>
+            <p class="proj-links"><a href="https://github.com/sahil0x01/odinbyexample">GitHub ↗</a><a href="https://odinbyexample.com">Live ↗</a></p>
+          </li>
+        </ol>
+      </section>
+
+      <section class="now" aria-labelledby="now-label">
+        <p class="label" id="now-label">Writing &amp; what's next</p>
+        <p class="prose">Keeping a digital garden at <a href="https://notes.sahil.fyi">notes.sahil.fyi</a>: single precise notes, sources, media reviews and longer articles that tie them together.</p>
+        <p class="planned"><b>Planning:</b> a suite of privacy-oriented products. Still in the design stage, nothing to try yet.</p>
+      </section>
+
+      <section class="elsewhere" aria-labelledby="elsewhere-label">
+        <p class="label" id="elsewhere-label">Find me</p>
+        <ul class="links">
+          <li><a href="https://github.com/sahil0x01"><span>GitHub</span><span>↗</span></a></li>
+          <li><a href="https://x.com/sahil0x01"><span>X</span><span>↗</span></a></li>
+          <li><a href="https://notes.sahil.fyi"><span>Notes</span><span>↗</span></a></li>
+          <li><a href="mailto:hi@sahil.fyi"><span>Email</span><span>↗</span></a></li>
+        </ul>
+      </section>
+    </main>
+
+    <footer>
+      <span>© 2026 Sahil</span>
+      <span>sahil.fyi</span>
+    </footer>
+  </div>
+  <script src="field.js" defer></script>
+</body>
+</html>
